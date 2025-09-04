@@ -1587,6 +1587,7 @@ void init_defaults(void)
 	user_config.warp_cursor = True;
 	user_config.new_win_master = False;
 	user_config.floating_on_top = True;
+    user_config.mirror_layout = False;
 }
 
 Bool is_child_proc(pid_t parent_pid, pid_t child_pid)
@@ -2031,8 +2032,14 @@ void resize_master_add(void)
 	int m = focused ? focused->mon : 0;
 	float *mw = &user_config.master_width[m];
 
-	if (*mw < MF_MAX - 0.001f)
-		*mw += ((float)user_config.resize_master_amt / 100);
+	if (user_config.mirror_layout) {
+		if (*mw < MF_MAX + 0.001f)
+			*mw -= ((float)user_config.resize_master_amt / 100);
+	}
+	else {
+		if (*mw < MF_MAX - 0.001f)
+			*mw += ((float)user_config.resize_master_amt / 100);
+ 	}
 
 	tile();
 	update_borders();
@@ -2044,8 +2051,14 @@ void resize_master_sub(void)
 	int m = focused ? focused->mon : 0;
 	float *mw = &user_config.master_width[m];
 
-	if (*mw > MF_MIN + 0.001f)
-		*mw -= ((float)user_config.resize_master_amt / 100);
+	if (user_config.mirror_layout) {
+		if (*mw > MF_MIN - 0.001f)
+			*mw += ((float)user_config.resize_master_amt / 100);
+	}
+	else {
+		if (*mw > MF_MIN + 0.001f)
+			*mw -= ((float)user_config.resize_master_amt / 100);
+ 	}
 
 	tile();
 	update_borders();
@@ -2704,11 +2717,22 @@ void tile(void)
 		int master_width = (n_tileable > 1) ? (int)(tile_width * master_frac) : tile_width;
 		int stack_width = (n_tileable > 1) ? (tile_width - master_width - gaps) : 0;
 
+		int master_x, stack_x;
+		if (user_config.mirror_layout) {
+			master_x = tile_x + stack_width + (n_tileable > 1 ? gaps : 0);
+			stack_x = tile_x;
+		}
+		else {
+			master_x = tile_x;
+			stack_x = tile_x + master_width + gaps;
+		}
+
+
 		{
 			Client *c = tileable[0];
 			int border_width = 2 * user_config.border_width;
 			XWindowChanges wc = {
-				.x = tile_x,
+				.x = master_x,
 				.y = tile_y,
 				.width = MAX(1, master_width - border_width),
 				.height = MAX(1, tile_height - border_width),
@@ -2801,7 +2825,7 @@ void tile(void)
 		for (int i = 1; i < n_tileable; i++) {
 			Client *c = tileable[i];
 			XWindowChanges wc = {
-				.x = tile_x + master_width + gaps,
+				.x = stack_x,
 				.y = stack_y,
 				.width = MAX(1, stack_width - (2 * user_config.border_width)),
 				.height = MAX(1, heights_final[i] - (2 * user_config.border_width)),

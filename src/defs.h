@@ -98,6 +98,7 @@ typedef struct {
 	Bool warp_cursor;
 	Bool floating_on_top;
 	Bool new_win_master;
+    Bool mirror_layout;
 	Binding binds[MAX_ITEMS];
 	char **should_float[MAX_ITEMS];
 	char **start_fullscreen[MAX_ITEMS];
